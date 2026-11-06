@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layered Depth Shuffle Showcase</title>
+  <style>
+    /* Reset & Base Styling */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #f7f5f2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #4a4a4a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    /* Carousel Stage Container */
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      max-width: 1000px;
+      height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Navigation Arrow Buttons */
+    .arrow-btn {
+      position: absolute;
+      top: 35%;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.85);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .arrow-btn:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: scale(1.05);
+    }
+
+    .arrow-btn.left-btn { left: 10px; }
+    .arrow-btn.right-btn { right: 10px; }
+
+    .arrow-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: #666;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* Card Wrapper & Smooth Scale Transition */
+    .card {
+      position: absolute;
+      width: 280px;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                  opacity 0.6s ease, 
+                  z-index 0.6s step-end;
+    }
+
+    .card-img-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background-color: #eee;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-img-wrapper img,
+    .card-img-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .card-img-wrapper video {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    /* When center video is playing */
+    .card.is-playing video {
+      opacity: 1;
+    }
+
+    .card.is-playing img {
+      opacity: 0;
+    }
+
+    .card-title {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 15px;
+      color: #333;
+    }
+
+    /* Base Positions */
+    .pos-middle {
+      transform: translateX(0) scale(1);
+      z-index: 2;
+      opacity: 1;
+    }
+
+    .pos-left {
+      transform: translateX(-340px) scale(0.92);
+      z-index: 1;
+      opacity: 0.9;
+    }
+
+    .pos-right {
+      transform: translateX(340px) scale(0.92);
+      z-index: 1;
+      opacity: 0.9;
+    }
+
+    /* --- SIDE CARDS SHRINK ANIMATION WHILE WALKING --- */
+    .side-shrunk.pos-left {
+      transform: translateX(-340px) scale(0.78); /* Side cards get smaller when center walks */
+      opacity: 0.75;
+    }
+
+    .side-shrunk.pos-right {
+      transform: translateX(340px) scale(0.78); /* Side cards get smaller when center walks */
+      opacity: 0.75;
+    }
+
+    /* Depth Shuffle Passes */
+    .front-pass {
+      z-index: 3 !important;
+      opacity: 1;
+    }
+
+    .back-pass {
+      z-index: 1 !important;
+      opacity: 0.85;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 850px) {
+      .pos-left { transform: translateX(-180px) scale(0.8); }
+      .pos-right { transform: translateX(180px) scale(0.8); }
+      .side-shrunk.pos-left { transform: translateX(-180px) scale(0.68); }
+      .side-shrunk.pos-right { transform: translateX(180px) scale(0.68); }
+      .card { width: 220px; }
+      .card-img-wrapper { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Carousel Area -->
+  <div class="carousel-container">
+    
+    <!-- Controls -->
+    <button class="arrow-btn left-btn" id="prevBtn" aria-label="Previous Slide">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <button class="arrow-btn right-btn" id="nextBtn" aria-label="Next Slide">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    </button>
+
+    <!-- Left Card -->
+    <div id="card-left" class="card pos-left">
+      <div class="card-img-wrapper">
+        <img src="images/a.png" alt="Soft Leather Jackets">
+      </div>
+      <div class="card-title">SOFT LEATHER JACKETS</div>
+    </div>
+
+    <!-- Center Card -->
+    <div id="card-center" class="card pos-middle">
+      <div class="card-img-wrapper">
+        <img id="center-img" src="images/c.png" alt="Soft Leather Jackets">
+        <video id="center-video" src="images/walk.mp4" muted playsinline loop></video>
+      </div>
+      <div class="card-title">SOFT LEATHER JACKETS</div>
+    </div>
+
+    <!-- Right Card -->
+    <div id="card-right" class="card pos-right">
+      <div class="card-img-wrapper">
+        <img src="images/b.png" alt="Soft Leather Jackets">
+      </div>
+      <div class="card-title">SOFT LEATHER JACKETS</div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript Behavior -->
+  <script>
+    const leftCard = document.getElementById('card-left');
+    const rightCard = document.getElementById('card-right');
+    const centerCard = document.getElementById('card-center');
+    const centerVideo = document.getElementById('center-video');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let isSwapped = false;
+    let autoTimer;
+    let videoTimer;
+
+    // Trigger video walk & shrink side cards
+    function playCenterVideo() {
+      centerCard.classList.add('is-playing');
+      leftCard.classList.add('side-shrunk');
+      rightCard.classList.add('side-shrunk');
+      
+      centerVideo.currentTime = 0;
+      centerVideo.play().catch(() => {});
+    }
+
+    // Stop video, show static image, and pop side cards back to normal size
+    function stopCenterVideo() {
+      centerCard.classList.remove('is-playing');
+      leftCard.classList.remove('side-shrunk');
+      rightCard.classList.remove('side-shrunk');
+      centerVideo.pause();
+    }
+
+    // Fast Clean Shuffle
+    function executeShuffle() {
+      // 1. Instantly pause video, pop side cards back to normal size, swap to image
+      stopCenterVideo();
+
+      isSwapped = !isSwapped;
+
+      if (isSwapped) {
+        leftCard.className = 'card pos-right front-pass';
+        rightCard.className = 'card pos-left back-pass';
+      } else {
+        leftCard.className = 'card pos-left back-pass';
+        rightCard.className = 'card pos-right front-pass';
+      }
+
+      // 2. After the shuffle motion finishes, start walking & shrinking side cards again
+      clearTimeout(videoTimer);
+      videoTimer = setTimeout(() => {
+        playCenterVideo();
+      }, 650);
+    }
+
+    // 5-second recurring loop
+    function startAutoSlide() {
+      autoTimer = setInterval(executeShuffle, 5000);
+    }
+
+    function handleManualClick() {
+      clearInterval(autoTimer);
+      executeShuffle();
+      startAutoSlide();
+    }
+
+    // Event Listeners
+    prevBtn.addEventListener('click', handleManualClick);
+    nextBtn.addEventListener('click', handleManualClick);
+
+    // Initialize
+    startAutoSlide();
+    playCenterVideo();
+  </script>
+
+</body>
+</html>
